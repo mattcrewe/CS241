@@ -28,6 +28,10 @@ int main (int argc, char** argv) {
 
   read(conn_s, buffer, sizeof(char) * 2048);
 
+  FILE* output = fopen("output.txt", "w");
+  fwrite(buffer, sizeof(char), 2048, output);
+  fclose(output);
+
   printf("%s", buffer);
   close(conn_s);
   freeaddrinfo(addr);
