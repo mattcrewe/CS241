@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
 int main (int argc, char** argv) {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -32,22 +34,28 @@ int main (int argc, char** argv) {
   int conn_s;
   int should_exit = 0;
 
+  fcntl(sockfd, F_SETFL, O_NONBLOCK);
+
   while (1) {
-    if ((conn_s = accept(sockfd, NULL, NULL)) < 0) {
-      perror("error kek lmao \n");
-      return 1;
+    if (should_exit) {
+      exit(EXIT_SUCCESS);
     }
+
+    if ((conn_s = accept(sockfd, NULL, NULL)) < 0) {
+      if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
+        continue;
+      perror("error kek lmao \n");
+      exit(EXIT_FAILURE);
+    }
+
+    long conn_s_flags = fcntl(conn_s, F_GETFL);
+    fcntl(conn_s, F_SETFL, conn_s_flags & ~O_NONBLOCK);
 
 
     char buffer[2048];
 
-    while (!should_exit) {
-      read(conn_s, buffer, sizeof(char) * 2048);
-      if (strncmp(buffer, "memes", strlen("memes"))) {
-        should_exit = 1;
-      }
-      printf("%s", buffer);
-    }
+    read(conn_s, buffer, sizeof(char) * 2048);
+    printf("%s", buffer);
 
     close(conn_s);
   }
